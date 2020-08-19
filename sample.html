@@ -1,0 +1,250 @@
+<!--
+Digital Waiter Theme Sample
+Copyright (c) 2020 Michael Angelo Ruta <meku@uchu-neko.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Digital Waiter has a Content Security Policy with the following rules:
+NOT ALLOWED: External Style and Scripts
+NOT ALLOWED: External APIs
+NOT ALLOWED: External Frames
+ALLOWED: External Images
+
+You can use these embedded minified opensource libraries:
+/js/core/jquery.min.js, /js/jquery.cookie.min.js
+/assets/core/popper.min.js, /assets/core/bootstrap.min.js, /css/bootstrap.min.css
+/css/fontawesome.all.css, /css/icofont.min.css
+/js/vue.min.js, /js/vue-i18n.min.js
+/js/socket.io.min.js, /js/numeral.min.js
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Digital Waiter</title>
+	<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no"> 
+	<script src="/js/core/jquery.min.js"></script>
+	<script src="/assets/core/bootstrap.min.js"></script>
+	<link href="/css/bootstrap.min.css" rel="stylesheet">
+	<script src="/js/vue.min.js"></script>
+</head>
+<body>
+	<main id="app" role="main" class="container">
+	  	<img v-bind:src="config.logo" width="200px" height="200px" class='float-right'>
+
+      	<h2 class="mt-5">Welcome!</h2>
+      	<div id='notes'>
+			<p>
+				Creating your own front-end designs requires a knowledge in web programming and you may need to hire a
+				web desginers/developers. For more information, see our github repo <strong>https://github.com/michaelmruta/dw-themes</strong>
+			</p>
+			<p>
+				This is a basic &amp; minimal example of a custom menu using Bootstrap and Vue.js Framework.
+			   	You can use this as a starting point to create your own design. 
+				Visit <a href="#">https://getbootstrap.com</a> and 
+				<a href="#">https://vuejs.org</a> for more information.
+			</p>
+			<p>
+				Note: You should embed all your JS & CSS codes in this single HTML file. 
+				You can also use additional local images by uploading it in Digital Waiter's image folder inside 
+				the 'Files' app of your iOS Device. Digital Waiter has a Content Security Policy with the following rules:
+			</p>
+		</div>
+		<div>
+			<h2 class='text-center'>Menu</h2>
+	
+			<div v-for="category in categories" v-if="category.items.length > 0">
+				<h5>{{ category.name }}</h5>
+				<div class="row">
+				  	<div class="col-sm-4 col-md-3" v-for="item in category.items">
+						<div class="card">
+						  	<div class="card-body">
+
+						  	  <!-- in this example we're only using the image of the first variant -->
+						  	  <!-- /assets/img/missing.png for items without images -->
+							  <img v-bind:src="item.variants[0].image" 
+							  		width="100" 
+							  		height="100" onerror="this.src='/assets/img/missing.png'">
+					  		  <div class='item-description'>
+					  		  </div>
+					  		</div>
+					  		<div class="card-footer">
+						    	<div class="float-left">
+						    		<!-- in this example we're only using the price of the first variant -->
+						    		{{item.name}} - {{item.variants[0].price}}
+						    	</div>
+						    	<div class="float-right">
+						    		<button class='btn btn-dark' v-on:click="add(item)">+</button>
+									<button class='btn btn-dark' v-on:click="subtract(item)">-</button>
+								</div>
+						    </div>
+						</div>
+					</div>
+				</div>
+				<hr />
+			</div>
+
+		<div class="row">
+			<div class="col-md-6">
+				<h2 class='text-center'>My Cart</h2>
+				<table class='table'>
+					<tr v-for="content in Object.values( cart.contents )">
+						<td>{{ content.qty }}x</td>
+						<td>{{ content.name }}</td>
+						<td>{{ content.price * content.qty }} </td>
+					</tr>
+					<tr>
+						<td colspan="2">Total Amount Due: </td>
+						<td>{{ getTotalAmount() }}</td>
+					</tr>
+				</table>
+			</div>
+			<div class="col-md-6">
+				<label>Table Number:</label>
+				<input class="form-control" type="text" v-model="cart.info.tsrNumber">
+				<label>Number of Pax:</label>
+				<input class="form-control" type="number" v-model="cart.info.numberOfPax">
+				<hr />
+				<button id='checkout' class='btn btn-primary' v-on:click="checkOut()">Check Out</button>
+			</div>
+			<div class="col-md-12">
+				<div class="alert"></div>
+			</div>
+		</div>
+
+		<footer class="text-center">
+	  	  	Digital Waiter &copy; 2020 {{config.name}}. All Rights Reserved
+	 	</footer>
+    </main>
+
+	<script>
+	var app = new Vue({
+			el: '#app',
+			data: {
+				config: {},
+				tsrNumber: "", // refers to table/seat/room number
+				categories: [], // each category contains the items in an array
+				cart: { info: { numberOfPax: 1 }, // info is the order header
+						contents: {} // contens is the orders details
+			}
+		},
+		methods: {
+			// Add an item
+			add: function(i) {
+				var cart = this.cart
+				if(!cart.contents[i.name]) {
+					cart.contents[i.name] = { name: i.name,
+	  											qty: 1,
+	  											price: i.variants[0].price, 
+	  											variant: i.variants[0].name,
+	  											upc: i.variants[0].upc
+	  										}
+				} else {
+					cart.contents[i.name].qty += 1
+				}
+				this.$forceUpdate()
+			},
+			// Remove an item
+			subtract: function(i) {
+				var cart = this.cart
+				if(cart.contents[i.name]) {
+					cart.contents[i.name].qty -= 1					
+					if(cart.contents[i.name].qty == 0) {
+						delete cart.contents[i.name]
+					}
+				}
+				this.$forceUpdate()
+			},
+			// Get total amount of the cart
+			getTotalAmount: function() {
+				var total = 0
+				for (var c of Object.values(this.cart.contents)){
+					total += c.price * c.qty
+				}
+				return total
+			},
+			// submit the order
+			checkOut: function() {
+				var self = this
+
+				if(!self.cart.info.tsrNumber) {
+	  				$(".alert").removeClass('alert-success')
+	  				$(".alert").addClass('alert-danger')
+	  				$(".alert").text("Please enter your table number")
+	  				return
+				}
+
+		  		$.post("/api/order", self.cart, function(res) {
+		  			if(res.success) {
+		  				$(".alert").removeClass('alert-danger')
+		  				$(".alert").addClass('alert-success')
+		  				$(".alert").text("Success!! Here's your Order No #" + res.oid)
+		  				$("#checkout").attr('disabled','disabled')
+		  			} else {
+		  				$(".alert").removeClass('alert-success')
+		  				$(".alert").addClass('alert-danger')
+		  				$(".alert").text(res.message)
+		  			}
+	  			});
+			}
+		},
+		mounted () {
+			var self = this;
+			// retrieves config data, the categories with its items & table number from the qr
+			$.get('/api/all')
+			.then(response => {
+				self.config = response.config;
+				self.categories = response.categories;				
+				self.cart.info.tsrNumber = response.tsrNumber;
+			 })
+		}
+	});
+	</script>
+	<style>
+		#notes {
+			font-size: 12px;
+		}
+		.card-body {
+			padding: 0px;
+			overflow-y: hidden;
+		}
+		.card-body img {
+			width: 100%;
+			height: auto;
+		}
+		.card-footer {
+			border: none;
+			background: none;
+		}
+		.item-description {
+			top: 0px;
+			position: absolute;
+			color: #FFF;
+		}
+		[class^='col-'] {
+			padding: 10px;
+		}
+		footer {
+			padding: 20px;
+		}
+	</style>
+
+</body>
+</html>

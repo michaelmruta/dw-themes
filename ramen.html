@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Digital Waiter</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <script src="/js/core/jquery.min.js"></script>
+    <script src="/assets/core/popper.min.js"></script>
+    <script src="/assets/core/bootstrap.min.js"></script>
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <script src="/js/vue.min.js"></script>
+    <script src="./js/numeral.min.js"></script>
+    <link href="/css/fontawesome.all.css" rel="stylesheet">
+    <link href="/css/icofont.min.css" rel="stylesheet">
+    <script src="/js/vue-i18n.min.js"></script>
+    <script src="./locales.js"></script>
+</head>
+<body>
+    <main id="app" role="main" v-bind:class="'container ' + $i18n.locale">
+        <!-- MultiStep Form -->
+        <div id="menu">
+            <div id="language" class='dropdown' v-if="config.language">
+                <button class="btn btn-sm btn-dark dropdown-toggle" ype="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="fa fa-language"></i> {{ $i18n.locale }}
+                </button>
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton">
+                    <a class="dropdown-item" href="#" v-for="l in $i18n.availableLocales" v-on:click="changeLocale(l)">{{ $t(l) }}</a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="loader text-center">
+                    <h4><i class="fa fa-sync-alt fa-spin"></i> {{$t('Please wait')}}</h4>
+                </div>
+                <div class="card-body">
+                    <h2 class="text-center"><img v-bind:src="config.logo" width="80px" height="80px" onerror="$(this).attr('src','/assets/samples/ramen-logo.png')"> {{ $t('Ramen House') }}</h2>
+                    <form id="msform">
+                        <ul id="progressbar" class="text-center">
+                            <li v-on:click="jumpTo($event)" class="active" id="ramen"><strong>{{$t('Ramen')}}</strong></li>
+                            <li v-on:click="jumpTo($event)" id="options"><strong>{{$t('Customize')}}</strong></li>
+                            <li v-on:click="jumpTo($event)" id="drinks"><strong>{{$t('Drinks')}}</strong></li>
+                            <li v-on:click="jumpTo($event)" id="confirm"><strong>{{$t('Confirm')}}</strong></li>
+                            <li v-on:click="jumpTo($event)" id="success"><strong>{{$t('Finish')}}</strong></li>
+                        </ul>
+                        <fieldset>
+                            <h5>{{$t('Select your Ramen')}}</h5>
+                            <div class="contents">
+                                <div v-for="category in categories" v-if="category.items.length > 0 && category.name == 'Ramen'">
+                                    <div class="row">
+                                        <div class="col-sm-6 col-md-4 col-lg-3 ramen" v-for="item in category.items">
+                                            <div class="card item" v-on:click='select($event,item)' v-bind:class="{'selected':(cart.contents.RAMEN == item)}">
+                                                <div class="card-body">
+                                                    <!-- in this example we're only using the image of the first variant -->
+                                                    <!-- /assets/img/missing.png for items without images -->
+                                                    <img class='preview' v-bind:src="item.variants[0].image" onerror="this.src='/assets/img/missing.png'">
+                                                </div>
+                                                <div class="card-footer">
+                                                    <div class="float-left">
+                                                        <!-- in this example we're only using the price of the first variant -->
+                                                        {{$t(item.name)}}
+                                                    </div>
+                                                    <div class='float-right'>
+                                                        {{ config.currency }}{{item.variants[0].price}}
+                                                    </div>
+                                                    <!-- <div class="float-right">
+                                                        <button class='add-button btn btn-light' v-on:click="add(item)">SELECT</button>
+                                                    </div> -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <hr />
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-light next float-right" v-on:click="next($event)" />
+                            {{$t('Next Step')}} <i class="fa fa-arrow-right"></i>
+                            </button>
+                        </fieldset>
+                        <fieldset>
+                            <div class="contents">
+                                <div class="options" v-if="cart.contents.RAMEN.name">
+                                    <h5>{{$t('Customize your Ramen')}}</h5>
+                                    <div class="row">
+                                        <div class="col-md-12 text-center" v-if="(Object.keys(cart.contents.RAMEN.options).length + cart.contents.RAMEN.variants.length) == 1">
+                                            {{$t('no options available')}}
+                                        </div>
+                                        <div v-if="cart.contents.RAMEN.variants.length > 1" class='customizations-option col-md-6 col-sm-12'>
+                                            <!-- <div class="form-group">
+                                            <label for="">Variants</label>
+                                            <select class="form-control" v-on:change="changeVariant($event)">
+                                                <option v-for="v in cart.contents.RAMEN.variants" v-bind:value='v.name'>{{v.name}} - {{ config.currency }}{{v.price}}</option>
+                                            </select>
+                                        </div> -->
+                                            <label>{{$t('Variants')}}</label>
+                                            <div class="customizations-buttons">
+                                                <span class="btn-group w-100" role="group">
+                                                    <button type="button" v-for="v,n in cart.contents.RAMEN.variants" 
+                                                        v-on:click='changeVariant($event)' 
+                                                        v-bind:class="'btn btn-sm ' + (n==0 ? 'btn-dark' : '')"
+                                                        v-bind:value='v.name'>
+                                                        {{$t(v.name)}} - {{ config.currency }}{{v.price}}
+                                                    </button>
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div v-if="Object.keys(cart.contents.RAMEN.options).length" class='customizations-option col-md-6 col-sm-12' v-for="o,k in cart.contents.RAMEN.options">
+                                            <label>{{ $t(k) }}</label>
+                                            <div class="customizations-buttons">
+                                                <span class="btn-group w-100" role="group">
+                                                    <button type="button" v-for="m,n in o" v-bind:data-key='k' v-bind:data-value='m' v-on:click='immediatelyCustomize($event)' v-bind:class="'btn btn-sm ' + (n==0 ? 'btn-dark' : '')">
+                                                        {{$t(m)}}
+                                                    </button>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr />
+                                <div class="contents">
+                                    <div v-for="category in categories" v-if="category.items.length > 0 && 
+                                        !['Ramen','Drinks','Beverages'].includes(category.name)">
+                                        <h5>{{$t(category.name)}}</h5>
+                                        <hr />
+                                        <div class="row">
+                                            <div class="col-6 col-sm-6 col-md-4 col-lg-3 extras" v-for="item in category.items">
+                                                <div v-on:click='addToCart($event,item)' class="card">
+                                                    <div class="card-body">
+                                                        <i class="icofont-check"></i>
+                                                        <img class='preview' v-bind:src="item.variants[0].image" onerror="this.src='/assets/img/missing.png'">
+                                                        <label>
+                                                            {{$t(item.name)}}
+                                                        </label>
+                                                        <div class='float-right'>
+                                                            {{ config.currency }}{{item.variants[0].price}}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <hr />
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-light previous float-left" v-on:click="previous($event)"/>
+                            <i class="fa fa-arrow-left"></i> {{$t('Previous')}}
+                            </button>
+                            <button type="button" class="btn btn-light next float-right" v-on:click="next($event)" />
+                            {{$t('Next Step')}} <i class="fa fa-arrow-right"></i>
+                            </button>
+                        </fieldset>
+                        <fieldset>
+                            <h5>{{$t('Would you like some drinks?')}}</h5>
+                            <div class="contents">
+                                <div v-for="category in categories" v-if="category.items.length > 0 && (category.name == 'Drinks' || category.name == 'Beverages')">
+                                    <div class="row">
+                                        <div class="col-sm-6 col-md-4 col-lg-3 drinks" v-for="item in category.items">
+                                            <div class="card" v-on:click='addDrinksToCart($event,item)'>
+                                                <div class="card-body">
+                                                    <img class='preview' v-bind:src="item.variants[0].image" onerror="this.src='/assets/img/missing.png'">
+                                                </div>
+                                                <div class="card-footer">
+                                                    <div class="float-left">
+                                                        <!-- in this example we're only using the price of the first variant -->
+                                                        {{$t(item.name)}}
+                                                    </div>
+                                                    <div class='float-right'>
+                                                        {{ config.currency }}{{item.variants[0].price}}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <hr />
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-light previous float-left" v-on:click="previous($event)"/>
+                            <i class="fa fa-arrow-left"></i> {{$t('Previous')}}
+                            </button>
+                            <button type="button" class="btn btn-light next float-right" v-on:click="next($event)" />
+                            {{$t('Next Step')}} <i class="fa fa-arrow-right"></i>
+                            </button>
+                        </fieldset>
+                        <fieldset>
+                            <h5>{{$t('Confirm your Order')}}</h5>
+                            <div class="contents">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h2 class='text-center'><i class="icofont-shopping-cart"></i> {{$t('Cart')}}</h2>
+                                        <table class='table'>
+                                            <tr v-for="content in Object.values( cart.contents )" v-if="content.name">
+                                                <td style="width: 1%; display: none;">{{ content.qty }}x</td>
+                                                <td>{{ $t(content.name) }}</td>
+                                                <td style="text-align: right">{{ content.price * content.qty }} </td>
+                                            </tr>
+                                            <tr v-if="config.serviceCharge">
+                                                <td>{{ $t('Service Charge') }}</td>
+                                                <td class="text-right">{{ config.serviceCharge }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="1"><strong>{{$t('Total Amount Due')}}: </strong></td>
+                                                <td style="text-align: right"><strong>{{ config.currency }}{{ getTotalAmount() }}</strong></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label><i class="fa fa-chair"></i> {{$t('Table Number')}}:</label>
+                                        <input class="form-control" type="text" v-model="cart.info.tsrNumber">
+                                        <label><i class="fa fa-users"></i> {{$t('Number of Pax')}}:</label>
+                                        <input class="form-control" type="number" v-model="cart.info.numberOfPax">
+                                        <hr />
+                                    </div>
+                                    <div class="col-md-12">
+                                        <div class="alert alert-danger" v-if="error.message">{{ $t(error.message,{object:error.object}) }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-light previous float-left" v-on:click="previous($event)"/>
+                            <i class="fa fa-arrow-left"></i> {{$t('Previous')}}
+                            </button>
+                            <button type="button" class="btn btn-light next float-right" v-on:click="checkOut()"/>
+                            {{$t('Check Out')}} <i class="fa fa-arrow-right"></i>
+                            </button>
+                        </fieldset>
+                        <fieldset>
+                            <div class="text-center">
+                                <i class="icofont-check" style="font-size: 128px;"></i>
+                                <br><br>
+                                <h3 class='text-primary'>#{{success.object}}</h3>
+                                {{ $t("Success!! Your Order No is %{object}",{object:success.object}) }}
+                            </div>
+                        </fieldset>
+                    </form>
+                </div>
+                <footer class="text-center">
+                    Digital Waiter &copy; 2020 {{$t(config.name)}}. {{$t('All Rights Reserved')}}
+                </footer>
+            </div>
+        </div>
+    </main>
+
+    <script>
+    var app = new Vue({
+        i18n: new VueI18n({
+            locale: 'ja',
+            messages
+        }),
+        el: '#app',
+        data: {
+            config: {},
+            tsrNumber: "",
+            categories: [],
+            cart: {
+                info: { numberOfPax: 1 },
+                contents: { RAMEN: {} }
+            },
+            error: {},
+            success: {}
+        },
+        methods: {
+            next: function(e) {
+
+                current_fs = $(e.target).closest('fieldset');
+                next_fs = $(e.target).closest('fieldset').next();
+
+                $("#progressbar li").eq($("fieldset").index(next_fs)).addClass("active");
+                next_fs.show();
+
+                current_fs.animate({ opacity: 0 }, {
+                    step: function(now) {
+                        opacity = 1 - now;
+                        current_fs.css({
+                            'display': 'none',
+                            'position': 'relative'
+                        });
+                        next_fs.css({ 'opacity': opacity });
+                    },
+                    duration: 600
+                });
+            },
+            previous: function(e) {
+
+                current_fs = $(e.target).closest('fieldset');
+                previous_fs = $(e.target).closest('fieldset').prev();
+
+                $("#progressbar li").eq($("fieldset").index(previous_fs)).addClass("active");
+                $("#progressbar li").eq($("fieldset").index(current_fs)).removeClass("active");
+                previous_fs.show();
+                current_fs.animate({ opacity: 0 }, {
+                    step: function(now) {
+                        opacity = 1 - now;
+                        current_fs.css({
+                            'display': 'none',
+                            'position': 'relative'
+                        });
+                        previous_fs.css({ 'opacity': opacity });
+                    },
+                    duration: 600
+                });
+            },
+            jumpTo: function(e) {
+                var idx = $("#msform li").index($(e.target));
+
+                if (idx == 4) {
+                    return 5
+                }
+
+                current_fs = $("fieldset:nth(" + (idx - 1) + ")");
+                next_fs = $("fieldset:nth(" + idx + ")");
+
+                $("fieldset").hide();
+                $("#progressbar li").eq($("fieldset").index(next_fs)).addClass("active");
+
+                next_fs.show();
+                current_fs.animate({ opacity: 0 }, {
+                    step: function(now) {
+                        opacity = 1 - now;
+                        current_fs.css({
+                            'display': 'none',
+                            'position': 'relative'
+                        });
+                        next_fs.css({ 'opacity': opacity });
+                    },
+                    duration: 600
+                });
+            },
+            changeLocale: function(l) {
+                this.$i18n.locale = l
+            },
+            getLineItemStr: function(i) {
+                var customizations = ""
+                if (i.customizations) {
+                    for (var c of Object.keys(i.customizations)) {
+                        customizations += " " + c + ":" + i.customizations[c]
+                    }
+                }
+                return (i.variant ? i.variants[i.variant || 0].name + " " : "") + i.name + customizations
+            },
+            getLineItem: function(cart, i) {
+                return cart.contents[this.getLineItemStr(i)]
+            },
+            select: function(e, item) {
+                if (this.cart.contents.RAMEN == item) {
+                    this.cart.contents.RAMEN = {}
+                } else {
+                    this.cart.contents.RAMEN = item;
+                    this.cart.contents.RAMEN.qty = 1;
+                    this.cart.contents.RAMEN.price = item.variants[item.variant || 0].price;
+                }
+            },
+            addToCart: function(e, i) {
+                if (!this.cart.contents[i.name]) {
+                    $(e.target).closest('.card').toggleClass("selected");
+
+                    i.qty = 1
+                    i.price = i.variants[i.variant || 0].price
+                    this.cart.contents[i.name] = i
+                } else {
+                    $(e.target).closest('.card').toggleClass("selected");
+                    delete this.cart.contents[i.name]
+                }
+                this.$forceUpdate();
+            },
+            addDrinksToCart: function(e, i) {
+
+                if (this.cart.contents['DRINKS'] && $(e.target).closest('.card').hasClass("selected")) {
+                    $(e.target).closest('.card').removeClass("selected");
+                    delete this.cart.contents['DRINKS']
+                } else {
+                    $('.drinks .card').removeClass("selected");
+                    $(e.target).closest('.card').addClass("selected");
+                    i.qty = 1
+                    i.price = i.variants[i.variant || 0].price
+                    this.cart.contents['DRINKS'] = i
+                }
+
+                this.$forceUpdate();
+            },
+            changeVariant: function(e) {
+                var i = this.cart.contents.RAMEN
+                $(i.variants).each(function(index, value) {
+                    if (value.name == $(e.target).val()) {
+                        i.variant = index;
+                        i.price = i.variants[index].price
+                        i.upc = i.variants[index].upc
+                    }
+                });
+                var t = $(e.currentTarget)
+                $(t).siblings().removeClass('btn-dark');
+                $(t).addClass('btn-dark');
+
+                this.$forceUpdate();
+            },
+            immediatelyCustomize: function(e) {
+                var k = $(e.target).data('key')
+                var v = $(e.target).data('value')
+                if (!this.cart.contents.RAMEN.customizations) {
+                    this.cart.contents.RAMEN.customizations = {}
+                }
+                this.cart.contents.RAMEN.customizations[k] = v
+
+                var t = $(e.currentTarget)
+                var k = t.data('key')
+                var v = t.data('value')
+
+                $(t).siblings().removeClass('btn-dark');
+                $(t).addClass('btn-dark');
+            },
+            getTotalAmount: function() {
+                var total = 0
+                for (var c of Object.values(this.cart.contents)) {
+                    if (c.name) {
+                        total += c.price * c.qty
+                    }
+                }
+                if (this.config.serviceCharge) {
+                    total += Number(this.config.serviceCharge);
+                }
+                return numeral(total).format('0,0.[00]');;
+            },
+            // submit the order
+            checkOut: function() {
+                var self = this
+
+                if (!self.cart.info.tsrNumber) {
+                    self.error.message = self.$i18n.t("Please enter your table number")
+                    self.$forceUpdate();
+                    return
+                }
+
+                $.post("/api/order", self.cart, function(res) {
+                    if (res.success) {
+                        $(".alert").removeClass('alert-danger')                        
+
+                        current_fs = $("fieldset:nth(" + (4 - 1) + ")");
+                        next_fs = $("fieldset:nth(" + 4 + ")");
+
+                        $("fieldset").hide();
+                        $("#progressbar li").eq($("fieldset").index(next_fs)).addClass("active");
+
+                        next_fs.show();
+                        current_fs.animate({ opacity: 0 }, {
+                            step: function(now) {
+                                opacity = 1 - now;
+                                current_fs.css({
+                                    'display': 'none',
+                                    'position': 'relative'
+                                });
+                                next_fs.css({ 'opacity': opacity });
+                            },
+                            duration: 600
+                        });
+
+                        $(".alert").hide()
+                        self.success.message = res.message
+                        self.success.object = res.object
+                        self.$forceUpdate();
+
+                        // prevent further navigation
+                        self.next = function() {}
+                        self.previous = function() {}
+                        self.jumpTo = function() {}
+
+                    } else {
+                        self.error.message = res.message
+                        self.error.object = res.object
+                        self.$forceUpdate();
+                    }
+                });
+            }
+        },
+        mounted() {
+            var self = this;
+            $.get('/api/all')
+                .then(response => {
+                    self.config = response.config;
+                    self.categories = response.categories;
+                    self.cart.info.tsrNumber = response.tsrNumber;
+                    self.$i18n.locale = response.config.language || 'en';
+
+                    // let's copy the options from the first ramen in the list
+                    // this removes the need to encode the options for all of the other ramen
+                    for (var c of self.categories) {
+                        for (var i of c.items) {
+                            i.options = c.items[0].options
+                        }
+                    }
+
+                    $(".loader").hide()
+                })
+            var current_fs, next_fs, previous_fs;
+            var opacity;
+        }
+    });
+    </script>
+    <style>
+    #notes {
+        font-size: 12px;
+    }
+
+    .item-description {
+        top: 0px;
+        position: absolute;
+        color: #FFF;
+    }
+
+    [class^='col-'] {
+        padding: 10px;
+    }
+
+    footer {
+        padding: 20px;
+        font-size: 12px;
+    }
+
+    .loader {
+        padding: 20px;
+        font-size: 12px;
+    }
+
+    body {
+        background-color:#516630;
+        background-image:
+        radial-gradient(circle at 100% 150%, #516630 24%, #C8C09C 24%, #C8C09C 28%, #516630 28%, #516630 36%, #C8C09C 36%, #C8C09C 40%, transparent 40%, transparent),
+        radial-gradient(circle at 0    150%, #516630 24%, #C8C09C 24%, #C8C09C 28%, #516630 28%, #516630 36%, #C8C09C 36%, #C8C09C 40%, transparent 40%, transparent),
+        radial-gradient(circle at 50%  100%, #C8C09C 10%, #516630 10%, #516630 23%, #C8C09C 23%, #C8C09C 30%, #516630 30%, #516630 43%, #C8C09C 43%, #C8C09C 50%, #516630 50%, #516630 63%, #C8C09C 63%, #C8C09C 71%, transparent 71%, transparent),
+        radial-gradient(circle at 100% 50%, #C8C09C 5%, #516630 5%, #516630 15%, #C8C09C 15%, #C8C09C 20%, #516630 20%, #516630 29%, #C8C09C 29%, #C8C09C 34%, #516630 34%, #516630 44%, #C8C09C 44%, #C8C09C 49%, transparent 49%, transparent),
+        radial-gradient(circle at 0    50%, #C8C09C 5%, #516630 5%, #516630 15%, #C8C09C 15%, #C8C09C 20%, #516630 20%, #516630 29%, #C8C09C 29%, #C8C09C 34%, #516630 34%, #516630 44%, #C8C09C 44%, #C8C09C 49%, transparent 49%, transparent);
+        background-size: 100px 50px;
+    }
+
+    #menu {
+        height: 100vh;
+        margin-bottom: 0px;
+        position: relative;
+    }
+
+    fieldset {
+        padding: 10px;
+    }
+
+    fieldset .row {
+        margin: 0px;
+    }
+
+    .preview {
+        width: 100%;
+    }
+
+    .item {
+        border: 3px solid #FFF;
+        filter: grayscale(0.4);
+    }
+
+    .card-body {
+        padding: 0px;
+        height: inherit;
+    }
+
+    .card-footer {
+        position: absolute;
+        width: 100%;
+        bottom: 0px;
+        color: #EEE;
+        font-family: sans-serif;
+        font-size: 14px;
+        padding: 4px;
+        border: none;
+        background: rgba(30, 30, 30, 0.6);
+    }
+
+    .footer {
+        padding: 5px;
+        height: 50px;
+        border: 1px solid red;
+        width: 100%;
+    }
+
+    button.previous,
+    button.next {
+        margin-top: 20px;
+        font-size: 14px;
+        background: #343a40;
+        color: #FAFAFA;
+    }
+
+    .ja button.previous,
+    .ja button.next {
+        font-size: 18px;
+        min-width: 80px;
+    }
+
+    .ramen .selected {
+        border: 3px solid #FFFF0A;
+        filter: grayscale(0);
+    }
+
+    .ramen .selected .card-footer {
+        color: #FFFF0A;
+    }
+
+    .extras .card {
+        border: none;
+    }
+
+    .extras .preview {
+        width: 50px;
+    }
+
+    .extras .icofont-check {
+        display: none;
+        font-size: 48px;
+    }
+
+    .extras img {
+        filter: grayscale(0.4);
+    }
+
+    .extras .selected {
+        color: #808003;
+    }
+
+    .extras .selected label {
+        text-decoration: underline;
+    }
+
+    .extras .selected .icofont-check {
+        display: block !important;
+        top: 0px;
+        left: 0px;
+        position: absolute;
+        margin-left: -20px;
+        margin-top: -20px;
+        color: #333;
+        z-index: 1;
+    }
+
+    .extras .selected img {
+        filter: grayscale(0);
+    }
+
+    .drinks .selected {
+        border: 3px solid #FFFF0A;
+        filter: grayscale(0);
+    }
+
+    .drinks .selected .card-footer {
+        color: #FFFF0A;
+    }
+
+    .add-button {
+        height: 20px;
+        padding: 0px 10px;
+        font-size: 10px;
+    }
+
+    fieldset h5 {
+        text-align: center;
+    }
+
+    .contents {
+        overflow-y: scroll;
+        /*height: calc(100vh - 300px);*/
+    }
+
+    #msform fieldset:not(:first-of-type) {
+        display: none
+    }
+
+    #menu>.card {
+        z-index: 0;
+        border: none;
+        border-radius: 0px;
+        position: relative;
+        box-shadow: 0px 0px 4px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    #progressbar {
+        padding: 0px;
+        display: block;
+        overflow: hidden;
+        color: lightgrey
+    }
+
+    #progressbar .active {
+        color: #000000
+    }
+
+    #progressbar li {
+        list-style-type: none;
+        font-size: 14px;
+        width: 20%;
+        float: left;
+        position: relative
+    }
+
+    #progressbar #ramen:before {
+        font-family: IcoFont;
+        font-size: 28px;
+        content: "\eb7b"
+    }
+
+    #progressbar #options:before {
+        font-family: IcoFont;
+        font-size: 28px;
+        content: "\eb8d"
+    }
+
+    #progressbar #drinks:before {
+        font-family: IcoFont;
+        font-size: 28px;
+        content: "\eb99"
+    }
+
+    #progressbar #confirm:before {
+        font-family: IcoFont;
+        font-size: 28px;
+        content: "\ed01"
+    }
+
+    #progressbar #success:before {
+        font-family: IcoFont;
+        font-size: 28px;
+        content: "\eed8"
+    }
+
+    #progressbar li:before {
+        width: 50px;
+        height: 50px;
+        line-height: 45px;
+        display: block;
+        font-size: 18px;
+        color: #ffffff;
+        background: lightgray;
+        border-radius: 50%;
+        margin: 0 auto 10px auto;
+        padding: 2px
+    }
+
+    #progressbar li:after {
+        content: '';
+        width: 100%;
+        height: 2px;
+        background: lightgray;
+        position: absolute;
+        left: 0;
+        top: 25px;
+        z-index: -1
+    }
+
+    #progressbar li.active:before,
+    #progressbar li.active:after {
+        background: #191919
+    }
+
+    .customizations-option label {
+        margin-top: 20px;
+    }
+
+    .customizations-buttons .btn {
+        font-size: 12px;
+        border: 1px solid #ccc;
+    }
+
+    #language {
+        position: absolute;
+        z-index: 1;
+        right: 0px;
+        margin: 10px;
+    }
+    </style>
+</body>
+
+</html>

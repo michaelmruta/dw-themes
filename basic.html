@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>Digital Waiter</title>
+    <script src="/js/core/jquery.min.js"></script>
+    <script src="/js/jquery.cookie.min.js"></script>
+    <script src="/assets/core/bootstrap.min.js"></script>
+    <script src="/js/vue.min.js"></script>
+    <script src="./js/numeral.min.js"></script>
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/fontawesome.all.css" rel="stylesheet">
+    <script src="/js/vue-i18n.min.js"></script>
+    <script src="./locales.js"></script>
+</head>
+
+<body>
+    <div id="fb-root"></div>
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v7.0&appId=160150821241082&autoLogAppEvents=1" nonce="guseWwwi">
+    </script>
+    <div id="app" class="row-fluid">
+        <div class="loader">
+            <h2><i class="fa fa-sync-alt fa-spin"></i> {{$t('Please Wait')}}</h2>
+        </div>
+        <div id="fb-like-container" style="display: none">
+            <div class="fb-like" v-data:href="config.website" data-width="" data-layout="standard" data-action="like" data-size="small" data-share="true"></div>
+        </div>
+        <div class='contents' style="display:none">
+            <div class="card-columns">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <img id="logo" v-bind:src="config.logo" onerror="$(this).attr('src','/assets/samples/default-logo.png')">
+                        <h4>{{ $t(config.name) }}</h4>
+                        <p class='subtitle' v-if="config.branch && config.branch != '-'">
+                            {{ $t(config.branch) }} <br />
+                            {{ config.address }}</p>
+                    </div>
+                </div>
+                <span v-if="c.status!='hidden' && c.items" v-for="c in categories">
+                    <span>
+                        <div class="card-category" v-if="c.items && c.items.length">
+                            <h3 class='text-center'>{{ c.name != '-' ? $t(c.name) : $t("Miscellaneous") }}</h3>
+                        </div>
+                        <div v-if="i.status != 'hidden'" v-for="i in c.items" class="card item" v-on:click="fullScreen($event,i)">
+                            <div class="card-body" v-bind:class="{ 'category-list': c.status == 'list' }">
+                                <img class="item-preview" v-bind:class="{ 'category-list-preview': c.status == 'list' }" v-bind:src="getImageForVariant(i) " onerror="$(this).hide()">
+                                <h5 class="card-title">{{ i.name }}
+                                    <span v-if="config.showPrices == 'Yes' && i.status == 'promo'" class="float-right">
+                                        <span style="text-decoration: line-through; color: #AAA">
+                                            {{ config.currency }} {{ i.variants[i.variant || 0].price }}
+                                        </span>
+                                        {{ config.currency }} {{ getPromoPrice(i) }}
+                                    </span>
+                                    <span v-if="config.showPrices == 'Yes' && i.status != 'promo' && i.status != 'n/a'" class="float-right">
+                                        {{ config.currency }} {{ i.variants[i.variant || 0].price }}
+                                    </span>
+                                    <span v-if="config.showPrices == 'Yes' && i.status == 'n/a'" class="float-right" style="font-size: 0.7em">
+                                        <i>(not available)</i>
+                                    </span>
+                                </h5>
+                                <p class="card-text" v-bind:class="{ 'category-list-description': c.status == 'list' }">{{ i.description }}</p>
+                            </div>
+                            <div class="card-body details-disclosed">
+                                <img class="item-preview" v-bind:class="{ 'category-list-preview': c.status == 'list' }" v-bind:src="getImageForVariant(i) " onerror="$(this).hide()">
+                                <h5 class="card-title">{{ i.name }}
+                                    <span v-if="config.showPrices == 'Yes' && i.status == 'promo'" class="float-right">
+                                        <span style="text-decoration: line-through; color: #AAA">
+                                            {{ config.currency }} {{ i.variants[i.variant || 0].price }}
+                                        </span>
+                                        {{ config.currency }} {{ getPromoPrice(i) }}
+                                    </span>
+                                    <span v-if="config.showPrices == 'Yes' && i.status != 'promo' && i.status != 'n/a'" class="float-right">
+                                        {{ config.currency }} {{ i.variants[i.variant || 0].price }}
+                                    </span>
+                                    <span v-if="config.showPrices == 'Yes' && i.status == 'n/a'" class="float-right" style="font-size: 0.7em">
+                                        <i>(not available)</i>
+                                    </span>
+                                </h5>
+                                <p class="card-text" v-bind:class="{ 'category-list-description': c.status == 'list' }">{{ i.description }}</p>
+                                <div class="options">
+                                    <div class="row">
+                                        <div v-if="i.variants.length > 1" class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="">Variants</label>
+                                                <select class="form-control" v-on:change="changeVariant(i,$event)">
+                                                    <option v-for="v in i.variants" v-bind:value='v.name'>{{v.name}} - {{ config.currency }}{{v.price}}</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div v-if="Object.keys(i.options).length" class="col-md-6">
+                                            <div class="form-group" v-for="v,k in i.options">
+                                                <label>{{ k }}</label>
+                                                <select class="form-control" v-on:change="changeOption(i,$event)" v-bind:data-key="k">
+                                                    <option v-for="v,k in v" v-bind:value='v'>{{ v }}</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label>Quantity</label>
+                                            <div class="input-group mb-3">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text" id="inputGroup-sizing-default" v-on:click="changeQty(i,-1)">
+                                                        <i class="fa fa-minus"></i></span>
+                                                </div>
+                                                <input type="text" class="form-control text-center" aria-label="Default" aria-describedby="inputGroup-sizing-default" v-bind:value="getLineItem(cart,i) ? getLineItem(cart,i).qty + 'x' : '1x' " readonly>
+                                                <div class="input-group-append">
+                                                    <span class="input-group-text" id="inputGroup-sizing-default" v-on:click="changeQty(i,+1)">
+                                                        <i class="fa fa-plus"></i></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <button class="btn close-dialog" v-on:click="close($event)">
+                                                <i class="fa fa-chevron-left"></i> &nbsp;
+                                                {{$t("Return")}}
+                                            </button>
+                                        </div>
+                                        <div class="col-6 text-right">
+                                            <button class="btn float-right" v-on:click="addToCart($event, i)"><i class="fa fa-plus"></i> &nbsp;
+                                                {{$t('Add to Cart')}}</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </span>
+                </span>
+                <div class="modal fade" id="cart" tabindex="-1" role="dialog" aria-labelledby="cartLabel" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="exampleModalLabel"><i class="fa fa-shopping-cart"></i> {{$t('Check Out')}}</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <div v-if="Object.keys(cart.contents).length == 0" class="text-center">
+                                    <!-- <i>Your cart is empty... <br />Please make an order first</i> -->
+                                    <i>{{$t('Cart is empty...')}} {{$t('Please make an order first')}}</i>
+                                </div>
+                                <div id="form-1" v-if="Object.keys(cart.contents).length">
+                                    <table class="table">
+                                        <tr v-for="v,k in cart.contents">
+                                            <td style="min-width:10px; padding-left:0px; padding-right:0px">
+                                                <i class="fa fa-times-circle text-danger" v-on:click='removeToCart(k)' style="cursor: pointer"></i>
+                                            </td>
+                                            <td>{{ v.qty }}x</td>
+                                            <td>
+                                                {{ v.variant.toLowerCase() != "regular" ? v.variant + " " : "" }}{{ v.name }}
+                                                <div v-if="Object.keys(v.customizations).length">
+                                                    <small class="text-uppercase" v-for="cv,ck in v.customizations">{{ ck }}:{{ cv }} </small>
+                                                </div>
+                                            </td>
+                                            <td v-if="config.showPrices == 'Yes'" class="text-right">{{ v.price * v.qty }}</td>
+                                        </tr>
+                                        <tr v-if="config.showPrices == 'Yes' && config.serviceCharge">
+                                            <td></td>
+                                            <td></td>
+                                            <td>{{$t('Service Charge')}}</td>
+                                            <td class="text-right">{{ config.serviceCharge }}</td>
+                                        </tr>
+                                        <tfoot v-if="config.showPrices == 'Yes'">
+                                            <tr>
+                                                <td style="width:1%"></td>
+                                                <td style="width:1%"></td>
+                                                <td><strong>{{$t('Total Amount Due')}}</strong></td>
+                                                <td class="text-right"><strong>{{ config.currency }}{{ totalAmountDue() }}</strong></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                                <div id="form-2" v-if="Object.keys(cart.contents).length">
+                                    <div class=row>
+                                        <div class="col-md-8">
+                                            <div v-if="config.customerIdentifier == 'nick'" class="form-group">
+                                                <label for="tsrNumber">{{$t('Please enter your nickname')}}: *</label>
+                                                <input name="tsrNumber" type="text" class="form-control" required maxlength="20">
+                                            </div>
+                                            <div v-if="!['nick','order'].includes(config.customerIdentifier)" class="form-group">
+                                                <label for="tsrNumber">{{$t('Please enter your '+config.customerIdentifier+' number')}}:</label>
+                                                <span v-if="!tsrNumber">
+                                                    <input name="tsrNumber" type="text" class="form-control" required maxlength="10">
+                                                    <input name="manual" type="hidden" value="1">
+                                                </span>
+                                                <span v-if="tsrNumber">
+                                                    <input name="tsrNumber" type="text" class="form-control" required maxlength="10" :readonly="tsrNumber">
+                                                    <input name="manual" type="hidden" value="1">
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <div v-if="config.numberOfPax == 'Yes'" class="form-group">
+                                                <label for="numberOfPax">{{$t('Number of Pax')}}</label>
+                                                <input name="numberOfPax" type="number" class="form-control" min="1" max="99" v-model="cart.info.numberOfPax">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div v-if="config.notes == 'Yes'" class="form-group">
+                                        <label for="">{{$t('Any Additional Notes?')}}</label>
+                                        <textarea name="notes" cols="30" rows="2" class="form-control" maxlength="200"></textarea>
+                                    </div>
+                                    <br />
+                                    <div class="row">
+                                        <div v-if="config.orderType == 'Yes'" class="col-6">
+                                            <div class="btn-group w-100" role="group">
+                                                <button id="btn-dine-in" type="button" class="btn btn-secondary btn-sm text-warning" v-on:click="changeType($event)">{{$t('Dine-In')}}</button>
+                                                <button id="btn-take-out" type="button" class="btn btn-outline-secondary btn-sm" v-on:click="changeType($event)">{{$t('Take Out')}}</button>
+                                            </div>
+                                        </div>
+                                        <div v-if="config.methodOfPayment == 'Yes'" class="col-6 btn-group-justified">
+                                            <div class="btn-group w-100" role="group">
+                                                <button id="btn-cash" type="button" class="btn btn-secondary btn-sm text-warning" v-on:click="changeMethod($event)">{{$t('Cash')}}</button>
+                                                <button id="btn-card" type="button" class="btn btn-outline-secondary btn-sm" v-on:click="changeMethod($event)">{{$t('Card')}}</button>
+                                            </div>
+                                        </div>
+                                        <div v-if='(config.methodOfPayment == "Yes" && cart.info.methodOfPayment != "Card" && config.askForCashDenomination == "Yes")
+                                           || (config.methodOfPayment == "No" && config.askForCashDenomination == "Yes")' class="col-12 btn-group-justified text-center" style="margin-top: 20px;">
+                                            <label>{{$t('Expect change for cash')}}:</label>
+                                            <div class="btn-group w-100" role="group">
+                                                <button type="button" class="btn btn-sm btn-denomination" v-bind:class="{ 'text-warning btn-secondary': d == cart.info.cash, 
+                                                        'btn-outline-secondary': d != cart.info.cash }" v-for="d in config.denominations" v-on:click="changeDenomination($event)" v-data:cash='d'>{{d}}</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="error" class="alert alert-danger" role="alert" style="display: none; margin-top: 20px;">
+                                    </div>
+                                </div>
+                                <div id="form-3" v-if="Object.keys(cart.contents).length">
+                                    <p class="text-center" style="margin-bottom:0px">{{$t('Success!! Your Order No is %{object}',{object:''})}}</p>
+                                    <h1 class="text-center text-primary" style="font-size:3em; font-family: MONOSPACE">{{cart.oid}}</h1>
+                                    <hr />
+                                    <h6>{{$t('Order Summary')}}</h6>
+                                    <table class="table">
+                                        <tr v-for="v,k in cart.contents">
+                                            <td>{{ v.qty }}x</td>
+                                            <td>
+                                                {{ v.variant.toLowerCase() != "regular" ? v.variant + " " : "" }}{{ v.name }}
+                                                <div v-if="Object.keys(v.customizations).length">
+                                                    <small class="text-uppercase" v-for="cv,ck in v.customizations">{{ ck }}:{{ cv }} </small>
+                                                </div>
+                                            </td>
+                                            <td v-if="config.showPrices == 'Yes'" class="text-right">{{ v.price * v.qty }}</td>
+                                        </tr>
+                                        <tr v-if="config.showPrices == 'Yes' && config.serviceCharge">
+                                            <td></td>
+                                            <td>{{$t('Service Charge')}}</td>
+                                            <td class="text-right">{{ config.serviceCharge }}</td>
+                                        </tr>
+                                        <tfoot v-if="config.showPrices == 'Yes'">
+                                            <tr>
+                                                <td style="width:1%"></td>
+                                                <td><strong>{{$t('Total Amount Due')}}</strong></td>
+                                                <td class="text-right"><strong>{{ config.currency }}{{ totalAmountDue() }}</strong></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                    <div v-if="config.askForFeedback == 'Yes'" class="form-group text-center">
+                                        <label for="star-rating">{{$t('How would you rate our service?')}}</label>
+                                        <div class="star-rating">
+                                            <i class="far fa-star" data-rating="1"></i>
+                                            <i class="far fa-star" data-rating="2"></i>
+                                            <i class="far fa-star" data-rating="3"></i>
+                                            <i class="far fa-star" data-rating="4"></i>
+                                            <i class="far fa-star" data-rating="5"></i>
+                                            <input type="hidden" name="rating" class="rating-value" value="0">
+                                        </div>
+                                    </div>
+                                    <div v-if="config.askForFeedback == 'Yes'" class="form-group">
+                                        <label for="">{{$t('Leave us a comment or suggestions')}}:</label>
+                                        <textarea name="feedback" cols="30" rows="2" class="form-control" maxlength="200"></textarea>
+                                    </div>
+                                    <!-- <div v-if="config.contact" class="form-group text-center">
+                                <small>You may contact us at:</small>
+                                <a v-bind:href="'mailto:'+config.contact"><h6>{{config.contact}}</h6></a>
+                            </div> -->
+                                    <!-- facebook like & share -->
+                                    <div v-if="config.website" id="like-share" class="text-center">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer" v-if="!Object.keys(cart.contents).length">
+                                <button id="close-btn" type="button" class="btn btn-secondary" data-dismiss="modal">{{$t('Close')}}</button>
+                            </div>
+                            <div class="modal-footer" v-if="Object.keys(cart.contents).length">
+                                <button id="new-btn" type="button" class="btn btn-primary" onclick="app.newOrder()">
+                                    {{$t('New Order')}}</button>
+                                <button id="close-btn" type="button" class="btn btn-secondary" data-dismiss="modal">
+                                    {{$t('Close')}}</button>
+                                <button id="back-btn" type="button" class="btn btn-secondary" onclick="app.back()" style="display: none;">
+                                    <i class="fa fa-arrow-left"></i>
+                                    {{$t('Back')}}</button>
+                                <button id="confirm-btn" type="button" class="btn btn-primary" onclick="app.next()">
+                                    {{$t('Confirm Order')}}</button>
+                                <button id="submit-btn" type="button" class="btn btn-primary" onclick="app.submit()" style="display: none;">
+                                    {{$t('Submit')}}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card text-center">
+                    <blockquote class="blockquote text-center"><i>
+                            "If you really want to make a friend, go to someone's house and eat with him...the people who give you their food give you their heart."
+                            <br />-Cesar Chavez</i></blockquote>
+                </div>
+            </div>
+            <div id="action-buttons">
+                <button id="chatroom-button" type="button" class="btn bg-dark text-light" data-toggle="modal" data-target="#chat" v-if="config.messaging == 'Yes'">
+                    <i class="fa fa-comment-dots"></i>
+                </button>
+                <button id="checkout-button" type="button" class="btn bg-dark text-light" data-toggle="modal" data-target="#cart">
+                    <i class="fa fa-shopping-cart"></i> {{$t('Check Out')}} 
+                    <small style="color:yellow">{{ Object.keys(cart.contents).length ? '(' + Object.keys(cart.contents).length + ')' : '' }}</small>
+                </button>
+            </div>
+            <footer class="page-footer font-small blue">
+                <small class="d-block text-center">
+                    <span style="font-size:10px">Digital Waiter</span><br />
+                    &copy; 2020
+                    <a v-if='config.website' v-bind:href="config.website"> {{config.name}}</a>
+                    <span v-if='!config.website'> {{config.name}}</span>. {{$t('All Rights Reserved')}}
+                </small>
+            </footer>
+        </div>
+        <div class="modal fade" id="chat" tabindex="-1" role="dialog" aria-labelledby="chatroomLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLabel"><i class="fa fa-comment-dots"></i> {{$t('Support')}}</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <table id='chatroom'>
+                        </table>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="input-group mb-3">
+                            <input id='chat-message' type="text" class="form-control" placeholder="" aria-label="" aria-describedby="" maxlength="100">
+                            <div class="input-group-append">
+                                <button class="btn btn-light" type="button" onclick="app.sendMessage()">
+                                        <i class="fa fa-paper-plane"></i> {{$t('Send')}}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="./js/socket.io.min.js"></script>
+    <script>
+
+    var app = new Vue({
+        i18n: new VueI18n({
+            locale: 'en',
+            messages
+        }),
+        el: '#app',
+        data: {
+            tsrNumber: null,
+            config: {},
+            categories: [],
+            items: [],
+            cart: { info: {}, contents: {} },
+            currentForm: 1
+        },
+        methods: {
+            isMuted() {
+                if (this.cart.oid) {
+                    alert("You cannot change this order because it's already been submitted. \nYou can create a new one by tapping on Check Out -> New Order.")
+                    return true
+                } else {
+                    return false
+                }
+            },
+            getLineItemStr: function(i) {
+                var customizations = ""
+                if (i.customizations) {
+                    for (var c of Object.keys(i.customizations)) {
+                        customizations += " " + c + ":" + i.customizations[c]
+                    }
+                }
+                return (i.variant ? i.variants[i.variant || 0].name + " " : "") + i.name + customizations
+            },
+            getLineItem: function(cart, i) {
+                return cart.contents[this.getLineItemStr(i)]
+            },
+            exists: function(i) {
+                var contents = this.cart.contents
+                var lineItem = this.getLineItemStr(i);
+                try {
+                    return (contents[lineItem].qty > 0) ? true : false
+                } catch (e) {
+                    return false
+                }
+            },
+            changeQty: function(i, val) {
+                if (this.isMuted()) {
+                    return
+                }
+
+                var cart = this.cart
+                var lineItem = this.getLineItemStr(i);
+                if (!cart.contents[lineItem]) {
+                    var price = i.variants[i.variant || 0].price
+                    cart.contents[lineItem] = {
+                        name: i.name,
+                        qty: 1 + val,
+                        price: price,
+                        variant: i.variants[i.variant || 0].name,
+                        customizations: Object.assign({}, i.customizations),
+                        upc: i.variants[i.variant || 0].upc
+                    }
+                    if (i.status == "promo") {
+                        cart.contents[lineItem].price = price - price * i.discount / 100
+                        cart.contents[lineItem].discount = i.discount
+                    }
+                } else {
+                    cart.contents[lineItem].qty = (cart.contents[lineItem].qty + val) % 99
+                }
+                if (cart.contents[lineItem].qty == 0) {
+                    delete cart.contents[lineItem]
+                }
+                this.$forceUpdate();
+            },
+            addToCart: function(e, i) {
+                if (this.isMuted()) {
+                    return
+                }
+
+                var cart = this.cart
+                var lineItem = this.getLineItemStr(i);
+                if (!cart.contents[lineItem]) {
+                    var price = i.variants[i.variant || 0].price
+                    cart.contents[lineItem] = {
+                        name: i.name,
+                        qty: 1,
+                        price: price,
+                        variant: i.variants[i.variant || 0].name,
+                        customizations: Object.assign({}, i.customizations),
+                        upc: i.variants[i.variant || 0].upc
+                    }
+                    if (i.status == "promo") {
+                        cart.contents[lineItem].price = price - price * i.discount / 100
+                        cart.contents[lineItem].discount = i.discount
+                    }
+                }
+                this.$forceUpdate();
+                this.close(e);
+            },
+            removeToCart: function(k) {
+                if (this.isMuted()) {
+                    return
+                }
+
+                delete this.cart.contents[k]
+                this.$forceUpdate();
+                if (!Object.keys(this.cart.contents).length) {
+                    setTimeout(function() {
+                        $("#close-btn").show()
+                    }, 0)
+                }
+            },
+            changeVariant: function(i, event) {
+                if (this.isMuted()) {
+                    return
+                }
+
+                $(i.variants).each(function(index, value) {
+                    if (value.name == $(event.target).val()) {
+                        i.variant = index;
+                    }
+                });
+                this.$forceUpdate();
+            },
+            changeType: function(e) {
+                var cart = this.cart
+                cart.info.orderType = $(e.target).text();
+                if (cart.info.orderType == "Dine-In") {
+                    $("#btn-dine-in").addClass("text-warning btn-secondary")
+                    $("#btn-take-out").removeClass("text-warning btn-secondary")
+                    $("#btn-take-out").addClass("btn-outline-secondary")
+                } else {
+                    $("#btn-take-out").addClass("text-warning btn-secondary")
+                    $("#btn-dine-in").removeClass("text-warning btn-secondary")
+                    $("#btn-dine-in").addClass("btn-outline-secondary")
+                }
+            },
+            changeMethod: function(e) {
+                var cart = this.cart
+                cart.info.methodOfPayment = $(e.target).text();            
+                if (cart.info.methodOfPayment == "Cash") {
+                    $("#btn-cash").addClass("text-warning btn-secondary")
+                    $("#btn-card").removeClass("text-warning btn-secondary")
+                    $("#btn-card").addClass("btn-outline-secondary")
+                } else {
+                    $("#btn-card").addClass("text-warning btn-secondary")
+                    $("#btn-cash").removeClass("text-warning btn-secondary")
+                    $("#btn-cash").addClass("btn-outline-secondary")
+                }
+                this.$forceUpdate();
+            },
+            changeDenomination: function(e) {
+                var cart = this.cart
+                cart.info.cash = $(e.target).text()
+                this.$forceUpdate();
+            },
+            changeOption: function(i, event) {
+                if (this.isMuted()) {
+                    return
+                }
+
+                if (!i.customizations) {
+                    i.customizations = {}
+                }
+                var key = $(event.target).data('key')
+                var value = $(event.target).val()
+                i.customizations[key] = value
+                this.$forceUpdate();
+            },
+            getImageForVariant: function(i) {
+                var image = i.variants[i.variant || 0].image
+                return image || i.variants[0].image
+            },
+            fullScreen: function(e, i) {
+                if (i.status == "n/a") {
+
+                } else {
+                    $(e.target).parents('.item').find('.details-disclosed').addClass('fullscreen')
+                }
+            },
+            close: function(e) {
+                $('.item').find('.details-disclosed').removeClass('fullscreen')
+                e.stopPropagation();
+            },
+            showForm() {
+                if (this.cart.oid) {
+                    this.currentForm = 3;
+                }
+
+                $("[id^='form-']").hide()
+                $(`[id='form-${this.currentForm}']`).show()
+                // $(`[id='form-${this.currentForm}']`).show("slide", { direction: "left" }, 1000);
+
+                if (this.currentForm == 1) {
+                    $("#cart .modal-footer button").hide()
+                    $("#close-btn").show()
+                    $("#confirm-btn").show();
+                } else if (this.currentForm == 2) {
+                    $("#cart .modal-footer button").hide()
+                    $("#back-btn").show()
+                    $("#submit-btn").show();
+                    $("[name='tsrNumber']").focus()
+                } else if (this.currentForm == 3) {
+                    $("#cart .modal-footer button").hide()
+                    $("#close-btn").show();
+                    $("#new-btn").show();
+                    $("#like-share").html($("#fb-like-container").html());
+                }
+            },
+            back: function(e) {
+                if (this.currentForm > 1) {
+                    this.currentForm--
+                }
+                this.showForm()
+            },
+            next: function(e) {
+                if (this.currentForm == 1 &&
+                    this.config.customerIdentifier == "order" &&
+                    this.config.orderType != "Yes" &&
+                    this.config.methodOfPayment != "Yes" &&
+                    this.config.askForCashDenomination != "Yes" &&
+                    this.config.notes != "Yes") {
+                    this.submit()
+                } else {
+                    this.currentForm++
+                    this.showForm()
+                }
+            },
+            submit: function(e) {
+                var self = this
+
+                if ($("[name='tsrNumber']").val() == "") {
+                    $("[for='tsrNumber']").css("color", "red")
+                    $("[name='tsrNumber']").css("border", "1px solid red")
+                    $("[name='tsrNumber']").focus()
+                } else {
+                    $("[for='tsrNumber']").css("color", "#212529")
+                    $("[name='tsrNumber']").css("border", "1px solid #ced4da")
+                    self.cart.info.tsrNumber = $("[name='tsrNumber']").val()
+                    if ($("[name='manual']").val()) {
+                        self.cart.info.manual = 1
+                    }
+                    self.cart.info.notes = $("[name='notes']").val()
+                    $.post("/api/order", self.cart, function(res) {
+                        if (res.success) {
+                            $("#error").hide()
+                            $.cookie('cart', self.cart)
+                            self.cart.oid = res.oid
+                            $.cookie('cart', self.cart);
+                            self.$forceUpdate();
+                            self.currentForm = 3
+                            self.showForm()
+                        } else {
+                            $("#error").show()
+                            $("#error").text(res.message)
+                        }
+                    });
+                }
+            },
+            getPromoPrice: function(i) {
+                var price = i.variants[i.variant || 0].price;
+                var discount = i.discount/100
+                var discountedPrice = price - (price * discount)
+                return numeral(discountedPrice).format('0,0.[00]')
+            },
+            totalAmountDue: function() {
+                var contents = this.cart.contents
+                var totalAmount = 0
+                for (var k of Object.keys(contents)) {
+                    totalAmount += contents[k].price * contents[k].qty;
+                }
+                if(this.config.serviceCharge) {
+                    totalAmount += Number(this.config.serviceCharge);
+                }
+                return numeral(totalAmount).format('0,0.[00]');
+            },
+            newOrder: function() {
+                $("#cart").modal('hide');
+                $.cookie('cart', { info: {}, contents: {} })
+                window.open(window.location, '_blank');
+            },
+            sendMessage: function() {
+                var self = this
+                var message = $("#chat-message").val()
+                if (message) {
+                    var source = self.cart.info.tsrNumber || $('[name="tsrNumber"]').val() || '?'
+                    $.socket.emit('msg', { source: source, payload: message })
+                    $("#chat-message").val('')
+                }
+            }
+        },
+        mounted() {
+            var self = this
+            $.cookie.json = true
+            try {
+                if ($.cookie('cart')) {
+                    self.cart = $.cookie('cart');
+                }
+            } catch (e) {}
+
+            $.get('/api/all')
+                .then(response => {
+                    self.categories = response.categories;
+                    self.config = response.config;
+                    self.tsrNumber = response.tsrNumber;
+                    self.$i18n.locale = response.config.language;
+                    self.$forceUpdate();
+
+                    $("title").text(self.config.name);
+
+                    // loaded
+                    setTimeout(function() {
+                        $(".loader").hide();
+                        $("#app .contents").fadeIn();
+                    }, 1000)
+                })
+
+            $("#cart").on('show.bs.modal', function() {
+                self.showForm()
+
+                function initStarRating() {
+                    var $star_rating = $('.star-rating i');
+                    var SetRatingStar = function() {
+                        return $star_rating.each(function() {
+                            if (parseInt($star_rating.siblings('input.rating-value').val()) >= parseInt($(this).data('rating'))) {
+                                return $(this).removeClass('far').addClass('fa');
+                            } else {
+                                return $(this).removeClass('fa').addClass('far');
+                            }
+                        });
+                    };
+                    $(".star-rating i").on('click', function(e) {
+                        $star_rating.siblings('input.rating-value').val($(this).data('rating'));
+                        $.post("/api/feedback/" + self.cart.oid, { rating: $(this).data('rating') })
+                        return SetRatingStar();
+                    });
+                    SetRatingStar();
+                }
+                initStarRating();
+                $('[name="feedback"]').change(function() {
+                    $.post("/api/feedback/" + self.cart.oid, { feedback: $(this).val() })
+                })
+            })
+
+            // chatroom
+            if (!$.socket) {
+                $.socket = io()
+
+                $.socket.on('msg', function(data) {
+                    if (data.source == 'localhost') {
+                        var tr = $('<tr><td width="1px"> <img src="' + app.config.logo + '" alt="" class="avatar">\
+			    					 </td><td colspan="2"><div class="message-r float-left"></div><br /></td></tr>')
+                        tr.find('div').text(data.payload)
+                        $("#chatroom").append(tr)
+                        var h = $("#chatroom").height()
+                        $("#chatroom").parent().animate({ scrollTop: h }, 500, 'swing', function() {
+                            $('#chat-message').focus();
+                        });
+                    } else {
+                        var tr = $('<tr><td colspan="2"><div class="message-l"></div></td></tr>')
+                        tr.find('div').text(data.payload)
+                        $("#chatroom").append(tr)
+                        var h = $("#chatroom").height()
+                        $("#chatroom").parent().animate({ scrollTop: h }, 500, 'swing', function() {
+                            $('#chat-message').focus();
+                        });
+                    }
+                });
+
+                $('#chat-message').keyup(function(e) {
+                    if (e.keyCode == 13) {
+                        self.sendMessage();
+                    }
+                });
+            }
+
+            $("#chat").on('shown.bs.modal', function() {
+                $("#chat-message").focus()
+            });
+        }
+    });
+
+    window.onload = function() {
+        if (typeof history.pushState === "function") {
+            history.pushState("!", null, null);
+            window.onpopstate = function() {
+                history.pushState('!!', null, null);
+            };
+        } else {
+            var ignoreHashChange = true;
+            window.onhashchange = function() {
+                if (!ignoreHashChange) {
+                    ignoreHashChange = true;
+                    window.location.hash = Math.random();
+                } else {
+                    ignoreHashChange = false;
+                }
+            };
+        }
+    }
+
+    window.addEventListener("hashchange", function(e) {
+        if (e.oldURL.length > e.newURL.length) {
+            $('.item').removeClass('fullscreen')
+            e.stopPropagation();
+        }
+    });
+    </script>
+    <style>
+    body {
+        padding: 10px 0px;
+        /*background: url("/assets/img/food-background-light.png");*/
+    }
+
+    /*.card-columns {
+		min-height: 100vh
+	}*/
+    #logo {
+        object-fit: contain;
+        width: 120px;
+        height: 120px;
+    }
+
+    .subtitle {
+        font-size: 12px;
+    }
+
+    blockquote {
+        font-family: 'Helvetica Neue';
+        font-size: 17px !important;
+        margin-left: 20px;
+        margin-right: 20px;
+        color: #AAA;
+    }
+
+    .item-preview {
+        padding: 10px;
+        border-radius: 20px;
+        object-fit: cover;
+        width: 150px;
+        height: 150px;
+        display: inline;
+        float: left;
+        max-height: 256px;
+    }
+
+    .card-title {
+        width: 100%;
+        text-overflow: ellipsis;
+    }
+
+    .card {
+        border: none;
+        background: none;
+    }
+
+    .card-text {
+        font-size: 0.8em;
+        color: #AAA;
+    }
+
+    .qty {
+        border: none;
+    }
+
+    .item {
+        cursor: pointer;
+        -webkit-transition: all 0.5s ease;
+        -moz-transition: all 0.5s ease;
+        -o-transition: all 0.5s ease;
+        transition: all 0.5s ease;
+    }
+
+    @keyframes slide {
+        0% {
+            opacity: 0;
+            left: 100%;
+        }
+
+        100% {
+            opacity: 1;
+            left: 0%;
+        }
+    }
+
+    .item .fullscreen {
+        z-index: 9999;
+        width: 100%;
+        height: 100%;
+        position: fixed;
+        top: 0;
+        left: 0;
+        animation-name: slide;
+        animation-duration: 0.5s;
+    }
+
+    .fullscreen .options {
+        display: block;
+    }
+
+    .options {
+        display: none;
+        overflow-y: scroll;
+        height: calc(100% - 80px);
+    }
+
+    .card-footer {
+        display: none;
+    }
+
+    .category-list {
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+    }
+
+    .category-list-preview,
+    .category-list-description {
+        display: none !important;
+    }
+
+    .fullscreen .category-list-preview,
+    .fullscreen .category-list-description {
+        display: block !important;
+    }
+
+    .fullscreen .category-list {
+        padding: 0.25rem
+    }
+
+    .fullscreen .card-footer {
+        display: block;
+        position: absolute;
+        margin: 0px;
+        left: 0px;
+        bottom: 0px;
+        width: 100%;
+        border: none;
+        background: #EEE;
+        opacity: 0.9;
+    }
+
+    .details-disclosed {
+        padding-top: 20px;
+        display: none;
+    }
+
+    .fullscreen.details-disclosed {
+        display: block;
+        background: rgba(255, 255, 255, 0.95);
+    }
+
+    .btn-light {
+        background: #F0F0F0;
+        border-radius: 0px;
+    }
+
+    .options label {
+        text-transform: uppercase;
+        font-weight: bold;
+        font-size: 0.6em;
+    }
+
+    .category-list {
+        padding-top: 0px;
+        padding-bottom: 0px;
+    }
+
+    @media (min-width: 575.98px) {
+        .fullscreen .item-preview {
+            width: 200px;
+            height: 200px;
+        }
+
+        .card-columns {
+            column-count: 2;
+        }
+    }
+
+    @media (min-width: 767.98px) {
+        .fullscreen .item-preview {
+            width: 100%;
+            height: unset;
+            max-height: 300px;
+            object-fit: cover;
+            ;
+            display: block;
+        }
+    }
+
+    @media (min-width: 991.98px) {
+        .fullscreen .item-preview {
+            max-width: 400px;
+            max-height: 400px;
+        }
+
+        .card-columns {
+            column-count: 3;
+        }
+    }
+
+    @media (min-width: 1199.98px) {
+        .card-columns {
+            column-count: 4;
+        }
+    }
+
+    #action-buttons {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        opacity: 0.8;
+        z-index: 1;
+    }
+
+    #return-button {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        opacity: 0.8;
+    }
+
+    #cart table td {
+        border: none;
+    }
+
+    #cart table tfoot td {
+        border-top: 1px solid #ccc;
+    }
+
+    .star-rating {
+        cursor: pointer;
+    }
+
+    #app h3 {
+        padding-top: 10px;
+        font-family: Helvetica;
+    }
+
+    #chatroom {
+        width: 100%;
+    }
+
+    #chat .modal-body {
+        min-height: 400px;
+        max-height: 400px;
+        overflow-y: scroll;
+    }
+
+    #chat td.avatar {
+        width: 1%;
+    }
+
+    #chat td {
+        vertical-align: bottom;
+    }
+
+    #chat .avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 30px;
+        border: 1px solid #ccc;
+        display: inline-block;
+        vertical-align: bottom;
+    }
+
+    #chat .message-l {
+        border-radius: 20px 20px 0px 20px;
+        float: right;
+        background: #EDEDED;
+        padding: 10px;
+        margin-right: 5px;
+        vertical-align: top;
+        max-width: 90%;
+        background: #0F80FF;
+        color: white;
+        margin-bottom: 10px;
+    }
+
+    #chat .message-r {
+        border-radius: 20px 20px 20px 0px;
+        float: left;
+        background: #EDEDED;
+        padding: 10px;
+        margin-left: 5px;
+        vertical-align: top;
+        max-width: 90%;
+        margin-bottom: 10px;
+    }
+
+    #chat .modal-footer {
+        height: 70px;
+    }
+
+    .loader {
+        margin: auto;
+        padding: 20px;
+        width: 100%;
+        text-align: center;
+    }
+
+    .loader h2 {
+        font-family: Helvetica Neue !important;
+        font-size: 16px;
+    }
+
+    footer {
+        padding: 10px;
+    }
+    </style>
+</body>
+
+</html>
