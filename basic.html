@@ -611,6 +611,9 @@
                             $("#error").show()
                             $("#error").text(res.message)
                         }
+                    }).catch(function(res) {
+                        $("#error").show()
+                        $("#error").text(res.responseText)
                     });
                 }
             },

@@ -202,7 +202,10 @@ You can use these embedded minified opensource libraries:
 		  				$(".alert").addClass('alert-danger')
 		  				$(".alert").text(res.message)
 		  			}
-	  			});
+				}).catch(function(res) {
+                    $(".alert").show()
+                    $(".alert").text(res.responseText)
+                });
 			}
 		},
 		mounted () {

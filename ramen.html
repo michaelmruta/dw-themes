@@ -464,6 +464,10 @@
                         self.error.object = res.object
                         self.$forceUpdate();
                     }
+                }).catch(function(res) {
+                    self.error.message = res.responseText
+                    self.error.object = null
+                    self.$forceUpdate();
                 });
             }
         },
