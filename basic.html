@@ -707,7 +707,7 @@
 
                     $("title").text(self.config.name);
 
-                    if( !$.cookie('cookie-policy-accepted') && self.config.showCookiePolicy) {
+                    if( !$.cookie('cookie-policy-accepted') && self.config.showCookiePolicy == 'Yes') {
                         $("#cookie-policy").show();
                     }
 

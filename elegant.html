@@ -751,7 +751,7 @@
 		     	self.tsrNumber = response.tsrNumber;
 		  		$("title").text(self.config.name);
 
-                if( !$.cookie('cookie-policy-accepted') && self.config.showCookiePolicy) {
+                if( !$.cookie('cookie-policy-accepted') && self.config.showCookiePolicy == 'Yes') {
                     $("#cookie-policy").show();
                 }
 
@@ -957,6 +957,7 @@
 				background: linear-gradient(to bottom, #eeeeee 0%,rgba(200,200,200,0.1) 100%);
 				filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#eeeeee', endColorstr='#cccccc',GradientType=0 );
 				color: #800002;
+				vertical-align: top;
 			}
 			.btn-category i {
 				display: block;
