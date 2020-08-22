@@ -27,6 +27,43 @@
 	  <h2><i class="fa fa-sync-alt fa-spin"></i> Please wait</h2>
 	</div>
 
+    <div id='cookie-policy'>
+        <div>
+            <h6>We use cookies on this site for your sessions</h6>
+            <p>Its only purpose is to keep the information of your cart information. 
+               You must agree you are giving your consent for us to set cookies.</p>
+        </div>
+        <button class='btn btn-dark' onclick='$.cookie("cookie-policy-accepted",true); $("#cookie-policy").fadeOut();'>
+            I agree
+        </button>
+    </div>
+    <style>
+        #cookie-policy {
+            position: fixed;
+            width: 100%;
+            top: 0px;
+            background: rgba(0,0,0,0.9);
+            z-index: 999;
+            color: white;
+            padding: 10px;
+            display: none;
+        }
+        #cookie-policy div {
+            width: calc( 100% - 100px );
+            display: inline-block;
+            float: left;
+        }
+        #cookie-policy p {
+            font-size: 11px;
+            margin-bottom: 0px;
+        }
+        #cookie-policy button {
+            display: inline-block;
+            float: right;
+            margin-right: 5px;
+        }
+    </style>
+
 	<div class="contents" style="display: none">
 		<div id="fb-like-container" style="display: none">
 			<div class="fb-like" v-data:href="config.website" 
@@ -723,6 +760,7 @@
 	  mounted () {
 	  	var self = this
 	  	$.cookie.json = true
+
 	  	try {
 	  		if($.cookie('cart')) {
 	  			self.cart = $.cookie('cart');
@@ -735,6 +773,10 @@
 	     	self.config = response.config;
 	     	self.tsrNumber = response.tsrNumber;
 	  		$("title").text(self.config.name);
+
+            if( !$.cookie('cookie-policy-accepted') && self.config.showCookiePolicy) {
+                $("#cookie-policy").show();
+            }
 
 	  		// loaded
 	  		setTimeout(function(){

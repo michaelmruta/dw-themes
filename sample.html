@@ -46,6 +46,44 @@ You can use these embedded minified opensource libraries:
 	<script src="/js/vue.min.js"></script>
 </head>
 <body>
+
+    <div id='cookie-policy'>
+        <div>
+            <h6>We use cookies on this site for your sessions</h6>
+            <p>Its only purpose is to keep the information of your cart information. 
+               You must agree you are giving your consent for us to set cookies.</p>
+        </div>
+        <button class='btn btn-dark' onclick='$.cookie("cookie-policy-accepted",true); $("#cookie-policy").fadeOut();'>
+            I agree
+        </button>
+    </div>
+    <style>
+        #cookie-policy {
+            position: fixed;
+            width: 100%;
+            top: 0px;
+            background: rgba(0,0,0,0.9);
+            z-index: 999;
+            color: white;
+            padding: 10px;
+            display: none;
+        }
+        #cookie-policy div {
+            width: calc( 100% - 100px );
+            display: inline-block;
+            float: left;
+        }
+        #cookie-policy p {
+            font-size: 11px;
+            margin-bottom: 0px;
+        }
+        #cookie-policy button {
+            display: inline-block;
+            float: right;
+            margin-right: 5px;
+        }
+    </style>
+    
 	<main id="app" role="main" class="container">
 	  	<img v-bind:src="config.logo" width="200px" height="200px" class='float-right'>
 
