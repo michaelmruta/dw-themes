@@ -518,10 +518,6 @@
                     self.cart.info.tsrNumber = response.tsrNumber;
                     self.$i18n.locale = response.config.language || 'en';
 
-                    if( !$.cookie('cookie-policy-accepted') && self.config.showCookiePolicy) {
-                        $("#cookie-policy").show();
-                    }
-
                     // let's copy the options from the first ramen in the list
                     // this removes the need to encode the options for all of the other ramen
                     for (var c of self.categories) {
