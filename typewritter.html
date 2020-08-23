@@ -442,14 +442,18 @@
 	  	currentForm: 1
 	  },
 	  methods: {
-	  	isMuted() {
-	  		if(this.cart.oid) {
-	  			alert("You cannot change this order because it's already been submitted. \nYou can create a new one by tapping on Check Out -> New Order.")
-  				return true
-  			} else {
-  				return false
-  			}
-	  	},
+        isMuted() {
+            if (this.cart.oid) {
+                var newOrder = confirm("You cannot change this order because it's already been submitted. Would you like to create a new order instead?")
+                if(newOrder) {
+                    $.cookie('cart', { info: {}, contents: {} })
+                    window.open(window.location, '_blank');
+                }
+                return true
+            } else {
+                return false
+            }
+        },
 	  	getLineItemStr: function(i) {
 	  		var customizations = ""
 	  		if(i.customizations) {
