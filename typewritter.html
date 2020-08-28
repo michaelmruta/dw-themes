@@ -90,7 +90,7 @@
 				  	 	<div v-bind:class="{ 'category-list': c.status == 'list' }">
 	 						<!-- <img class="item-preview" 
 						    	v-bind:class="{ 'category-list-preview': c.status == 'list' }" 
-						    	v-bind:src="getImageForVariant(i) " onerror="$(this).hide()"> -->
+						    	v-bind:src="getImageForVariant(i) " onerror="this.src='/blank.png'"> -->
 					    	<h5 class="card-title">
 					    		<span>{ i.name }</span>
 						    	<span v-if="config.showPrices == 'Yes' && i.status == 'promo'" class="float-right">
@@ -114,7 +114,7 @@
 				    		<div class="col-md-4" v-if="getImageForVariant(i)">
 							    <img class="item-preview" 
 							    	v-bind:class="{ 'category-list-preview': c.status == 'list' }" 
-							    	v-bind:src="getImageForVariant(i)" onerror="$(this).hide()">
+							    	v-bind:src="getImageForVariant(i)" onerror="this.src='/blank.png'">
 			    			</div>
 				    		<div class="col-md-8 options" v-bind:class="{'col-md-8': 1, 'options': 1, 'col-md-12': getImageForVariant(i)}">
 						    	<span>{ i.name }</span>

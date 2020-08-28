@@ -85,7 +85,7 @@
                         </div>
                         <div v-if="i.status != 'hidden'" v-for="i in c.items" class="card item" v-on:click="fullScreen($event,i)">
                             <div class="card-body" v-bind:class="{ 'category-list': c.status == 'list' }">
-                                <img class="item-preview" v-bind:class="{ 'category-list-preview': c.status == 'list' }" v-bind:src="getImageForVariant(i) " onerror="$(this).hide()">
+                                <img class="item-preview" v-bind:class="{ 'category-list-preview': c.status == 'list' }" v-bind:src="getImageForVariant(i) " onerror="this.src='/blank.png'">
                                 <h5 class="card-title">{{ i.name }}
                                     <span v-if="config.showPrices == 'Yes' && i.status == 'promo'" class="float-right">
                                         <span style="text-decoration: line-through; color: #AAA">
@@ -103,7 +103,7 @@
                                 <p class="card-text" v-bind:class="{ 'category-list-description': c.status == 'list' }">{{ i.description }}</p>
                             </div>
                             <div class="card-body details-disclosed">
-                                <img class="item-preview" v-bind:class="{ 'category-list-preview': c.status == 'list' }" v-bind:src="getImageForVariant(i) " onerror="$(this).hide()">
+                                <img class="item-preview" v-bind:class="{ 'category-list-preview': c.status == 'list' }" v-bind:src="getImageForVariant(i) " onerror="this.src='/blank.png'">
                                 <h5 class="card-title">{{ i.name }}
                                     <span v-if="config.showPrices == 'Yes' && i.status == 'promo'" class="float-right">
                                         <span style="text-decoration: line-through; color: #AAA">

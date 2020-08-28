@@ -73,7 +73,7 @@
 				{ config.address }</p>
 			</div>
 
-			<div class="card">
+			<div>
 
 				<div id="categories">
 					<button class='btn-embossed btn-category'  
@@ -93,7 +93,7 @@
 						  	 	<div class="card-body" v-bind:class="{ 'category-list': c.status == 'list' }">
 			 						<img class="item-preview" 
 							    	v-bind:class="{ 'category-list-preview': c.status == 'list' }" 
-							    	v-bind:src="getImageForVariant(i) " onerror="$(this).hide()">
+							    	v-bind:src="getImageForVariant(i)" onerror="this.src='/blank.png'">
 							    	<h5 class="card-title">{ i.name }
 								    	<span v-if="config.showPrices == 'Yes' && i.status == 'promo'" class="float-right">
 							    			<span style="text-decoration: line-through; color: #AAA">
@@ -870,9 +870,6 @@
 			.subtitle {
 				font-size: 12px;
 			}
-			.card {
-				background: none;
-			}
 			.item-preview {
 				position: absolute;
 				z-index: 0;
@@ -980,6 +977,7 @@
 			}
 			#categories, #items {
 				min-height: calc( 100vh - 200px );
+				height: inherit;
 			}
 			#items {
 				display: none;
